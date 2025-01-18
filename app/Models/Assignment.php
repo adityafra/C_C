@@ -12,4 +12,9 @@ class Assignment extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function criterias()
+    {
+        return $this->hasMany(AssignmentCriteria::class);
+    }
 }
