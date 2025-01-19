@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Assignment extends Model
 {
-    protected $fillable = ['title'];
+    protected $fillable = ['title', 'user_id'];
 
     public function user()
     {

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AssignmentCriteria extends Model
 {
-    protected $fillable = ['criteria'];
+    protected $fillable = ['assignment_id','criteria'];
 
     public function assignment()
     {
