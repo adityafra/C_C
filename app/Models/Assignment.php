@@ -17,4 +17,9 @@ class Assignment extends Model
     {
         return $this->hasMany(AssignmentCriteria::class);
     }
+
+    public function submissions()
+    {
+        return $this->hasMany(Submission::class);
+    }
 }

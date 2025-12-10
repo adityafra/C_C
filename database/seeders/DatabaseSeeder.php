@@ -14,21 +14,33 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        $json = File::get('database/data/users.json');
-        $data = json_decode($json);
-        foreach ($data->data as $obj) {
-            if (User::where('nim', $obj->nim)->exists()) {
-                continue;
+        $jsonFiles = [
+            'database/data/users.json',
+            'database/data/users-1.json',
+            'database/data/users-2.json'
+        ];
+        
+        foreach ($jsonFiles as $file) {
+            if (File::exists($file)) {
+                $json = File::get($file);
+                $data = json_decode($json);
+        
+                foreach ($data->data as $obj) {
+                    if (User::where('nim', $obj->nim)->exists()) {
+                        continue;
+                    }
+                    User::create([
+                        'name' => $obj->name,
+                        'nim' => $obj->nim,
+                        'department' => $obj->department,
+                        'position' => $obj->position,
+                        'password' => bcrypt($obj->password),
+                    ]);
+                }
+            } else {
+                $this->command->warn("File {$file} tidak ditemukan.");
             }
-            User::create([
-                'name' => $obj->name,
-                'nim' => $obj->nim,
-                'department' => $obj->department,
-                'position' => $obj->position,
-                'password' => $obj->password,
-            ]);
         }
+        
     }
 }

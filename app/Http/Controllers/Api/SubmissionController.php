@@ -2,15 +2,24 @@
 
 namespace App\Http\Controllers\Api;
 
+<<<<<<< HEAD
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSubmissionRequest;
+=======
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Submission\StoreSubmissionRequest;
+use App\Models\Submission;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+>>>>>>> 827a7ee6c2f1cba3c6a4a9c417063112fe88826a
 
 class SubmissionController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+<<<<<<< HEAD
     public function index()
     {
         //
@@ -22,6 +31,63 @@ class SubmissionController extends Controller
     public function create()
     {
         //
+=======
+    public function index(Request $request)
+    {
+        // Get request query 
+        $queryUser = $request->query('user-search');
+        $queryAssignment = $request->query('assignment-search');
+
+        // Query database and get relations data with expected column
+        $paginate = Submission::with([
+            'user',
+            'assignment',
+            'grade',
+        ])
+            ->select('id', 'folder_path', 'created_at', 'updated_at', 'assignment_id', 'submitted_by')
+            ->when($queryUser, function ($q) use ($queryUser) {
+
+                // Search user name from query value 
+                $q->whereHas('user', function ($subQuery) use ($queryUser) {
+                    $subQuery->whereAny([
+                        'name',
+                        'nim',
+                        'department'
+                    ], 'like', '%' . $queryUser . '%');
+                });
+            })
+            ->when($queryAssignment, function ($q) use ($queryAssignment) {
+
+                // Search assignment name from query value 
+                $q->whereHas('assignment', function ($subQuery) use ($queryAssignment) {
+                    $subQuery->where('title', 'like', '%' . $queryAssignment . '%');
+                });
+            })
+            ->latest()
+            ->paginate();
+
+        // Maping and return expected format object
+        $paginate->getCollection()->transform(function ($item) {
+
+            // inserting Submited user information
+            $item->submitted_by = $item->user;
+
+            // Delete all object value who unused
+            unset(
+                $item->user,
+                $item->assignment_id
+            );
+
+            return $item;
+        });
+
+
+        return response()->json([
+            'data' => $paginate,
+            'message' => 'Berhasil mengambil data',
+            'status' => 'success'
+        ]);
+>>>>>>> 827a7ee6c2f1cba3c6a4a9c417063112fe88826a
     }
 
     /**
@@ -31,6 +97,7 @@ class SubmissionController extends Controller
     {
         // 1. Data validasi sudah otomatis divalidasi oleh StoreSubmissionRequest
         $validated = $request->validated();
+<<<<<<< HEAD
         // 2. Proses upload file ke dalam storage submissions/id_peserta/assignment/file
         $folderPath = "submissions/{$validated['submitted_by']}/{$validated['assignment_id']}";
         $uploadedFilePath = $request->file('file')->store($folderPath, 'private');
@@ -41,6 +108,33 @@ class SubmissionController extends Controller
             'folder_path' => $uploadedFilePath, // lokasi file yang disimpan
         ]);
         
+=======
+
+        // 2. Proses upload file ke dalam storage submissions/id_peserta/assignment/file
+        if ($request->hasFile('files')) {
+            $file_list = [];
+            $userID = auth()->user()->id;
+            $destinationPath = "submissions/{$userID}/{$validated['assignment_id']}";
+
+            // Remove all files in the destination path
+            Storage::disk('public')->deleteDirectory($destinationPath);
+
+            foreach ($request->file('files') as $file) {
+                $filename = $file->getClientOriginalName();
+                $uploadedFilePath = $file->storeAs($destinationPath, $filename, 'public');
+                array_push($file_list, $uploadedFilePath);
+            }
+        }
+
+        // 3. Simpan data ke database
+        $submission = Submission::create([
+            'assignment_id' => $validated['assignment_id'], // id assignment atau tugas
+            'submitted_by' => $userID, // id peserta
+            'folder_path' => $destinationPath, // lokasi file yang disimpan
+            'file_list' => $file_list, // daftar file yang diupload
+        ]);
+        // 4. Berikan respons berhasil
+>>>>>>> 827a7ee6c2f1cba3c6a4a9c417063112fe88826a
         return response()->json([
             'message' => 'Submit berhasil',
             'data' => $submission
@@ -50,6 +144,7 @@ class SubmissionController extends Controller
     /**
      * Display the specified resource.
      */
+<<<<<<< HEAD
     public function show(string $id)
     {
         //
@@ -62,6 +157,47 @@ class SubmissionController extends Controller
     {
         //
     }
+=======
+    public function show(Submission $submission)
+    {
+        /**
+         * Ensure that the data is correctly in array form
+         */
+        $grade_criteria = json_decode($submission->grade->criterias ?? null, true);
+        $assignment_criteria = json_decode($submission->assignment->criterias, true);
+
+        // Mapping object to ID value
+        $grade_criteria_id = isset($grade_criteria) ? array_column($grade_criteria, 'assignment_criteria_id') : [];
+
+        /**
+         * Verify the criteria contained within by comparing the grade criteria ID and assignment criteria.
+         */
+        $criterias = array_map(function ($criteria) use ($grade_criteria_id) {
+            $criteria['status'] = in_array($criteria['id'], $grade_criteria_id);
+            return $criteria;
+        }, $assignment_criteria);
+
+
+        // Read all file paths uploaded
+        $all_file_path = [];
+
+        // Validate if path is exist
+        try {
+            $all_file_path = scandir(storage_path('/app/private' . $submission->folder_path));
+        } catch (\Exception $e) {
+        }
+
+        $submission->files = $all_file_path;
+        $submission->criterias = $criterias;
+
+        return response()->json([
+            'data' => $submission,
+            'message' => 'Berhasil mengambil informasi submisi',
+            'status' => 'success',
+        ]);
+    }
+
+>>>>>>> 827a7ee6c2f1cba3c6a4a9c417063112fe88826a
 
     /**
      * Update the specified resource in storage.
